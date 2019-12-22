@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -8,15 +9,27 @@ import (
 	"path/filepath"
 )
 
+var repo string
+var dir string
+var file string
+
 func main() {
-	scan("../")
+	parseFlags()
+	scan(dir)
+}
+
+func parseFlags() {
+	flag.StringVar(&repo, "repository", "", "the destination repository")
+	flag.StringVar(&dir, "directory", "", "the directory to scan")
+	flag.StringVar(&file, "file", "", "the output file")
+
+	flag.Parse()
 }
 
 func scan(path string) {
-	path, _ = filepath.Abs(path)
+	//path, _ = filepath.Abs(path)
 
-	fmt.Println("================================================================")
-	fmt.Printf("START: %s\n", path)
+	fmt.Printf("\n%s\n\n", path)
 
 	entries, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -25,7 +38,6 @@ func scan(path string) {
 
 	if len(entries) == 0 {
 		fmt.Println("  <EMPTY>")
-		fmt.Printf("END: %s\n", path)
 		return
 	}
 
@@ -41,14 +53,17 @@ func scan(path string) {
 	}
 
 	for _, d := range dirs {
-		fmt.Printf("  %s\t%s\t%s\t%s\n", d.ModTime(), d.Mode(), "<DIR>", d.Name())
+		fmt.Printf("  %s\t%s\t%-15s\t%s\n", d.ModTime().UTC().Format("2006-01-02 15:04:05 MST"), d.Mode(), "<DIR>", d.Name())
 	}
+
+	var totalSize int64
 
 	for _, f := range files {
-		fmt.Printf("  %s\t%s\t%d\t%s\n", f.ModTime(), f.Mode(), f.Size(), f.Name())
+		totalSize = totalSize + f.Size()
+		fmt.Printf("  %s\t%s\t%15d\t%s\n", f.ModTime().UTC().Format("2006-01-02 15:04:05 MST"), f.Mode(), f.Size(), f.Name())
 	}
 
-	fmt.Printf("END: %s\n", path)
+	fmt.Printf("\n%15d File(s)\n%15d Dir(s)\n%15d Bytes\n", len(files), len(dirs), totalSize)
 
 	for _, d := range dirs {
 		scan(filepath.Join(path, d.Name()))
